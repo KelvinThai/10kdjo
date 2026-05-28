@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState } from "react";
 import { useRouter } from "next/navigation";
 import {
   submitQuizAction,

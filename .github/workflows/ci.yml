@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm exec tsc --noEmit
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Build
+        run: pnpm build
+        env:
+          # Dummy values so module-load-time env checks (db client, Auth.js
+          # providers) don't throw. No real connections are made at build —
+          # all pages opt into dynamic rendering via `export const dynamic`.
+          DATABASE_URL: postgres://dummy:dummy@localhost:5432/dummy
+          AUTH_SECRET: ci-build-only-not-used-anywhere-real
+          AUTH_URL: http://localhost:3000
+          AUTH_GOOGLE_ID: dummy
+          AUTH_GOOGLE_SECRET: dummy
+          EMAIL_SERVER: smtp://localhost:1025
+          EMAIL_FROM: "10kdjo <noreply@10kdjo.local>"
