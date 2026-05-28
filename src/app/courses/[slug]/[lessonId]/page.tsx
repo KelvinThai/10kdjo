@@ -11,6 +11,7 @@ import {
   sections,
 } from "@/db/schema";
 import { LessonPlayer } from "@/components/LessonPlayer";
+import { Quiz } from "@/components/Quiz";
 
 export const dynamic = "force-dynamic";
 
@@ -140,6 +141,8 @@ export default async function LessonPage({
           alreadyCompleted={Boolean(progress?.completedAt)}
         />
       </div>
+
+      <Quiz lessonId={lesson.id} />
 
       <nav className="mt-10 flex items-center justify-between gap-3">
         {prev ? (
