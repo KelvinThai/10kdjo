@@ -3,12 +3,14 @@ import { desc, eq } from "drizzle-orm";
 import { auth, signOut } from "@/auth";
 import { db } from "@/db";
 import { courses, enrollments } from "@/db/schema";
+import { ProgressBar } from "@/components/ProgressBar";
+import { getCourseProgress } from "@/lib/progress";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   const session = await auth();
-  if (!session?.user) return null; // proxy already redirects, but keep TS happy
+  if (!session?.user) return null;
 
   const enrolled = await db
     .select({
@@ -22,6 +24,11 @@ export default async function DashboardPage() {
     .innerJoin(courses, eq(enrollments.courseId, courses.id))
     .where(eq(enrollments.userId, session.user.id))
     .orderBy(desc(enrollments.enrolledAt));
+
+  const progress = await getCourseProgress(
+    session.user.id,
+    enrolled.map((c) => c.id),
+  );
 
   return (
     <main className="mx-auto max-w-3xl p-8">
@@ -67,21 +74,32 @@ export default async function DashboardPage() {
           </div>
         ) : (
           <ul className="mt-3 space-y-3">
-            {enrolled.map((c) => (
-              <li key={c.id}>
-                <Link
-                  href={`/courses/${c.slug}`}
-                  className="block rounded-xl border border-neutral-200 bg-white p-4 transition hover:border-neutral-900"
-                >
-                  <h3 className="text-base font-semibold">{c.title}</h3>
-                  {c.description && (
-                    <p className="mt-1 line-clamp-2 text-sm text-neutral-600">
-                      {c.description}
-                    </p>
-                  )}
-                </Link>
-              </li>
-            ))}
+            {enrolled.map((c) => {
+              const p = progress.get(c.id);
+              return (
+                <li key={c.id}>
+                  <Link
+                    href={`/courses/${c.slug}`}
+                    className="block rounded-xl border border-neutral-200 bg-white p-4 transition hover:border-neutral-900"
+                  >
+                    <h3 className="text-base font-semibold">{c.title}</h3>
+                    {c.description && (
+                      <p className="mt-1 line-clamp-2 text-sm text-neutral-600">
+                        {c.description}
+                      </p>
+                    )}
+                    {p && p.total > 0 && (
+                      <ProgressBar
+                        completed={p.completed}
+                        total={p.total}
+                        pct={p.pct}
+                        className="mt-3"
+                      />
+                    )}
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>

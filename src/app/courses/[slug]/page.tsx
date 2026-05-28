@@ -4,6 +4,13 @@ import { and, asc, eq, inArray } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db } from "@/db";
 import { courses, sections, lessons, enrollments } from "@/db/schema";
+import { ProgressBar } from "@/components/ProgressBar";
+import {
+  type CourseProgress,
+  getCompletedLessonIds,
+  getCourseProgress,
+  getNextLessonId,
+} from "@/lib/progress";
 import { enrollAction } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -59,6 +66,19 @@ export default async function CoursePage({
     isEnrolled = Boolean(row);
   }
 
+  let progress: CourseProgress | null = null;
+  let nextLessonId: number | null = null;
+  let completedLessonIds = new Set<number>();
+  if (session?.user && isEnrolled) {
+    const map = await getCourseProgress(session.user.id, [course.id]);
+    progress = map.get(course.id) ?? null;
+    nextLessonId = await getNextLessonId(session.user.id, course.id);
+    completedLessonIds = await getCompletedLessonIds(
+      session.user.id,
+      course.id,
+    );
+  }
+
   const grouped = courseSections.map((s) => ({
     ...s,
     lessons: sectionLessons.filter((l) => l.sectionId === s.id),
@@ -68,6 +88,10 @@ export default async function CoursePage({
   const totalMinutes = Math.round(
     sectionLessons.reduce((sum, l) => sum + (l.durationSec ?? 0), 0) / 60,
   );
+
+  const courseComplete =
+    progress != null && progress.total > 0 && progress.completed >= progress.total;
+  const justStarted = progress != null && progress.completed === 0;
 
   return (
     <main className="mx-auto max-w-3xl p-8">
@@ -100,17 +124,41 @@ export default async function CoursePage({
             Sign in to enroll
           </Link>
         ) : isEnrolled ? (
-          <div className="flex items-center gap-3">
-            <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-800">
-              Enrolled
-            </span>
-            {sectionLessons[0] && (
-              <Link
-                href={`/courses/${course.slug}/${sectionLessons[0].id}`}
-                className="rounded-lg bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-neutral-800"
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <span
+                className={`rounded-full px-3 py-1 text-xs font-medium ${
+                  courseComplete
+                    ? "bg-emerald-100 text-emerald-800"
+                    : "bg-neutral-100 text-neutral-700"
+                }`}
               >
-                Start watching →
-              </Link>
+                {courseComplete ? "✓ Complete" : "Enrolled"}
+              </span>
+              {nextLessonId ? (
+                <Link
+                  href={`/courses/${course.slug}/${nextLessonId}`}
+                  className="rounded-lg bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-neutral-800"
+                >
+                  {justStarted
+                    ? "Start watching →"
+                    : "Continue watching →"}
+                </Link>
+              ) : courseComplete && sectionLessons[0] ? (
+                <Link
+                  href={`/courses/${course.slug}/${sectionLessons[0].id}`}
+                  className="rounded-lg border border-neutral-300 px-5 py-2.5 text-sm font-medium hover:bg-neutral-50"
+                >
+                  Review course →
+                </Link>
+              ) : null}
+            </div>
+            {progress && progress.total > 0 && (
+              <ProgressBar
+                completed={progress.completed}
+                total={progress.total}
+                pct={progress.pct}
+              />
             )}
           </div>
         ) : (
@@ -140,35 +188,49 @@ export default async function CoursePage({
                 {section.title}
               </h3>
               <ol className="mt-2 divide-y divide-neutral-200 rounded-xl border border-neutral-200 bg-white">
-                {section.lessons.map((lesson, i) => (
-                  <li
-                    key={lesson.id}
-                    className="flex items-center justify-between px-4 py-3"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm tabular-nums text-neutral-400">
-                        {String(i + 1).padStart(2, "0")}
-                      </span>
-                      {isEnrolled ? (
-                        <Link
-                          href={`/courses/${course.slug}/${lesson.id}`}
-                          className="text-sm font-medium hover:underline"
-                        >
-                          {lesson.title}
-                        </Link>
-                      ) : (
-                        <span className="text-sm font-medium text-neutral-700">
-                          {lesson.title}
+                {section.lessons.map((lesson, i) => {
+                  const done = completedLessonIds.has(lesson.id);
+                  return (
+                    <li
+                      key={lesson.id}
+                      className="flex items-center justify-between px-4 py-3"
+                    >
+                      <div className="flex items-center gap-3">
+                        {done ? (
+                          <span
+                            aria-label="completed"
+                            className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-[10px] font-bold text-white"
+                          >
+                            ✓
+                          </span>
+                        ) : (
+                          <span className="text-sm tabular-nums text-neutral-400">
+                            {String(i + 1).padStart(2, "0")}
+                          </span>
+                        )}
+                        {isEnrolled ? (
+                          <Link
+                            href={`/courses/${course.slug}/${lesson.id}`}
+                            className={`text-sm font-medium hover:underline ${
+                              done ? "text-neutral-500" : ""
+                            }`}
+                          >
+                            {lesson.title}
+                          </Link>
+                        ) : (
+                          <span className="text-sm font-medium text-neutral-700">
+                            {lesson.title}
+                          </span>
+                        )}
+                      </div>
+                      {lesson.durationSec ? (
+                        <span className="text-xs text-neutral-500">
+                          {Math.ceil(lesson.durationSec / 60)} min
                         </span>
-                      )}
-                    </div>
-                    {lesson.durationSec ? (
-                      <span className="text-xs text-neutral-500">
-                        {Math.ceil(lesson.durationSec / 60)} min
-                      </span>
-                    ) : null}
-                  </li>
-                ))}
+                      ) : null}
+                    </li>
+                  );
+                })}
               </ol>
             </div>
           ))
