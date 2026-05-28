@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 type YTPlayer = {
@@ -53,6 +54,7 @@ export function LessonPlayer({
   const watchedRef = useRef<number>(initialWatchedSec);
   const [watched, setWatched] = useState(initialWatchedSec);
   const [completed, setCompleted] = useState(alreadyCompleted);
+  const [certSerial, setCertSerial] = useState<string | null>(null);
 
   useEffect(() => {
     let player: YTPlayer | null = null;
@@ -119,8 +121,12 @@ export function LessonPlayer({
           body: JSON.stringify({ lessonId, watchedSec: now }),
         });
         if (res.ok) {
-          const data = (await res.json()) as { completed?: boolean };
+          const data = (await res.json()) as {
+            completed?: boolean;
+            certificateSerial?: string | null;
+          };
           if (data.completed) setCompleted(true);
+          if (data.certificateSerial) setCertSerial(data.certificateSerial);
         }
       } catch {
         // swallow — next heartbeat will retry
@@ -140,6 +146,18 @@ export function LessonPlayer({
       <div className="aspect-video w-full overflow-hidden rounded-2xl bg-black">
         <div ref={containerRef} className="h-full w-full" />
       </div>
+
+      {certSerial && (
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
+          <p className="font-semibold">🎉 You completed the course!</p>
+          <Link
+            href={`/cert/${certSerial}`}
+            className="mt-1 inline-block font-medium underline"
+          >
+            View your certificate →
+          </Link>
+        </div>
+      )}
 
       {completed ? (
         <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-800">

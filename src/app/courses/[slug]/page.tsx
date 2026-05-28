@@ -11,6 +11,7 @@ import {
   getCourseProgress,
   getNextLessonId,
 } from "@/lib/progress";
+import { issueCertificateIfComplete } from "@/lib/certificates";
 import { enrollAction } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -93,6 +94,12 @@ export default async function CoursePage({
     progress != null && progress.total > 0 && progress.completed >= progress.total;
   const justStarted = progress != null && progress.completed === 0;
 
+  let certSerial: string | null = null;
+  if (courseComplete && session?.user) {
+    const result = await issueCertificateIfComplete(session.user.id, course.id);
+    certSerial = result.serial;
+  }
+
   return (
     <main className="mx-auto max-w-3xl p-8">
       <Link
@@ -152,6 +159,14 @@ export default async function CoursePage({
                   Review course →
                 </Link>
               ) : null}
+              {certSerial && (
+                <Link
+                  href={`/cert/${certSerial}`}
+                  className="rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-emerald-700"
+                >
+                  View certificate →
+                </Link>
+              )}
             </div>
             {progress && progress.total > 0 && (
               <ProgressBar

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { desc, eq } from "drizzle-orm";
 import { auth, signOut } from "@/auth";
 import { db } from "@/db";
-import { courses, enrollments } from "@/db/schema";
+import { certificates, courses, enrollments } from "@/db/schema";
 import { ProgressBar } from "@/components/ProgressBar";
 import { getCourseProgress } from "@/lib/progress";
 
@@ -29,6 +29,18 @@ export default async function DashboardPage() {
     session.user.id,
     enrolled.map((c) => c.id),
   );
+
+  const userCerts = await db
+    .select({
+      serial: certificates.serial,
+      issuedAt: certificates.issuedAt,
+      courseTitle: courses.title,
+      courseSlug: courses.slug,
+    })
+    .from(certificates)
+    .innerJoin(courses, eq(certificates.courseId, courses.id))
+    .where(eq(certificates.userId, session.user.id))
+    .orderBy(desc(certificates.issuedAt));
 
   return (
     <main className="mx-auto max-w-3xl p-8">
@@ -103,6 +115,39 @@ export default async function DashboardPage() {
           </ul>
         )}
       </section>
+
+      {userCerts.length > 0 && (
+        <section className="mt-10">
+          <h2 className="text-lg font-medium">Certificates</h2>
+          <ul className="mt-3 space-y-2">
+            {userCerts.map((c) => (
+              <li
+                key={c.serial}
+                className="flex items-center justify-between rounded-xl border border-neutral-200 bg-white px-4 py-3"
+              >
+                <div>
+                  <p className="text-sm font-semibold">{c.courseTitle}</p>
+                  <p className="text-xs text-neutral-500">
+                    Issued{" "}
+                    {c.issuedAt.toLocaleDateString("en-US", {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                    })}{" "}
+                    · #{c.serial}
+                  </p>
+                </div>
+                <Link
+                  href={`/cert/${c.serial}`}
+                  className="rounded-lg border border-neutral-300 px-3 py-1.5 text-xs font-medium hover:bg-neutral-50"
+                >
+                  View →
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </main>
   );
 }

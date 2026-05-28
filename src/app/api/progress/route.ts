@@ -3,6 +3,7 @@ import { and, eq, sql } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db } from "@/db";
 import { lessons, lessonProgress, enrollments, sections } from "@/db/schema";
+import { issueCertificateIfComplete } from "@/lib/certificates";
 
 const COMPLETE_THRESHOLD = 0.9;
 
@@ -88,5 +89,18 @@ export async function POST(req: Request) {
       set: setClause,
     });
 
-  return NextResponse.json({ ok: true, completed: shouldComplete });
+  let certificateSerial: string | null = null;
+  if (shouldComplete) {
+    const result = await issueCertificateIfComplete(
+      session.user.id,
+      row.courseId,
+    );
+    certificateSerial = result.serial;
+  }
+
+  return NextResponse.json({
+    ok: true,
+    completed: shouldComplete,
+    certificateSerial,
+  });
 }
