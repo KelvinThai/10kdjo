@@ -26,7 +26,7 @@ ENV AUTH_URL=http://localhost:3000
 ENV AUTH_GOOGLE_ID=dummy
 ENV AUTH_GOOGLE_SECRET=dummy
 ENV EMAIL_SERVER=smtp://localhost:1025
-ENV EMAIL_FROM="10kdjo <noreply@10kdojo.org>"
+ENV EMAIL_FROM="10kdjo <noreply@app.10kdojo.org>"
 ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN pnpm build

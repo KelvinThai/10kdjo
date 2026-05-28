@@ -50,3 +50,6 @@ Thumbs.db
 
 # secrets / local
 *.local
+
+# SSH keys, credentials — anything under this folder is local-only
+.keys-gitignored/

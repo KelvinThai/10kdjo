@@ -8,7 +8,7 @@
 # Pre-reqs before running:
 #   - VM is Ubuntu 22.04+
 #   - User running this has passwordless or password-prompt sudo
-#   - DNS A records for 10kdojo.org and www.10kdojo.org point to this VM
+#   - DNS A record for app.10kdojo.org points to this VM (no CF proxy)
 #   - /opt/10kdjo/.env exists and is filled in (copy from .env.production.example)
 #
 # Usage:
@@ -20,8 +20,7 @@ set -euo pipefail
 
 DEPLOY_DIR="/opt/10kdjo"
 DEPLOY_USER="dev"
-DOMAIN_PRIMARY="10kdojo.org"
-DOMAIN_WWW="www.10kdojo.org"
+DOMAIN_PRIMARY="app.10kdojo.org"
 LETSENCRYPT_EMAIL="${LETSENCRYPT_EMAIL:-quan.thai1987@gmail.com}"
 
 require_root() {
@@ -96,7 +95,7 @@ if [[ ! -f /etc/letsencrypt/live/${DOMAIN_PRIMARY}/fullchain.pem ]]; then
 server {
     listen 80;
     listen [::]:80;
-    server_name ${DOMAIN_PRIMARY} ${DOMAIN_WWW};
+    server_name ${DOMAIN_PRIMARY};
     location /.well-known/acme-challenge/ { root /var/www/certbot; }
     location / { return 200 "bootstrap"; }
 }
@@ -108,7 +107,7 @@ NGINX
   step "Acquiring Let's Encrypt cert"
   certbot certonly \
     --webroot -w /var/www/certbot \
-    -d "${DOMAIN_PRIMARY}" -d "${DOMAIN_WWW}" \
+    -d "${DOMAIN_PRIMARY}" \
     --email "${LETSENCRYPT_EMAIL}" \
     --agree-tos --no-eff-email --non-interactive
 
