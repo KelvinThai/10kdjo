@@ -30,12 +30,40 @@ See [`docs/MVP-PLAN.md`](docs/MVP-PLAN.md) for the full plan and weekly mileston
 
 ## Local development
 
+Prereqs: Node 22+, pnpm 10+, Docker.
+
 ```bash
+# 1. Install deps
 pnpm install
+
+# 2. Copy the env template and fill in any credentials you have
+cp .env.local.example .env.local
+
+# 3. Start Postgres + Mailpit (SMTP catcher with web UI on :8025)
+pnpm dev:db
+
+# 4. Apply migrations and seed a placeholder course
+pnpm db:migrate
+pnpm db:seed
+
+# 5. Start the app
 pnpm dev
 ```
 
 Open <http://localhost:3000>.
+
+Magic-link sign-in works out of the box (emails land in Mailpit at <http://localhost:8025>). Google OAuth requires you to add `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` from Google Cloud Console (authorized redirect URI: `http://localhost:3000/api/auth/callback/google`).
+
+### Useful scripts
+
+| Script | What it does |
+|---|---|
+| `pnpm dev:db` / `dev:db:down` / `dev:db:logs` | Manage local Postgres + Mailpit |
+| `pnpm db:generate` | Generate a SQL migration from schema changes |
+| `pnpm db:migrate` | Apply migrations to the configured DB |
+| `pnpm db:push` | Push schema directly without migrations (dev only) |
+| `pnpm db:studio` | Drizzle Studio (web UI for the DB) |
+| `pnpm db:seed` | Seed placeholder data |
 
 ## Deployment
 
