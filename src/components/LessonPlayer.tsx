@@ -30,7 +30,7 @@ declare global {
   }
 }
 
-const HEARTBEAT_MS = 10_000;
+const HEARTBEAT_MS = 30_000;
 const API_SRC = "https://www.youtube.com/iframe_api";
 
 type Props = {

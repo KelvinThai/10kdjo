@@ -58,7 +58,7 @@ certificates     (id, user_id, course_id, issued_at, serial)
 - Public catalog page (`/courses`)
 - Course detail page (sections + lesson list)
 - Lesson page with YouTube embed
-- Progress heartbeat (every 10s) + auto-complete at 90% watched
+- Progress heartbeat (every 30s) + auto-complete at 90% watched
 - Enrollment ("Start course" button)
 
 ### Week 3 — Quizzes + progress
