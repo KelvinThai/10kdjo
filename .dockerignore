@@ -1,0 +1,25 @@
+**/node_modules
+**/.next
+**/out
+**/build
+**/coverage
+**/.git
+**/.github
+**/.vscode
+**/.idea
+**/*.log
+**/.DS_Store
+
+# Local-only env
+.env
+.env.*
+!.env*.example
+
+# Local-only compose
+docker-compose.dev.yml
+
+# Docs and dev-only files
+README.md
+docs/
+.gitignore
+.gitattributes
